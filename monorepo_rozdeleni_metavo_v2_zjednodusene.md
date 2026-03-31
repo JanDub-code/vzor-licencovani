@@ -48,10 +48,7 @@ Proto má být monorepo rozdělené podle odpovědností a kontraktů, ne podle 
 ├── packages/
 ├── infra/
 ├── docs/
-├── tests/
-├── tools/
-├── data-contracts/
-└── .github/   (nebo ekvivalent CI/CD složky)
+└── tests/
 ```
 
 ---
@@ -65,8 +62,7 @@ Sem patří vstupní aplikace a řídicí rozhraní.
 ```text
 apps/
 ├── api/                # hlavní FastAPI backend
-├── web/                # admin / curator / analyst UI
-└── batch-control/      # volitelná tenká control-plane aplikace pro batch operace
+└── web/                # admin / curator / analyst UI
 ```
 
 ### `apps/api/`
@@ -100,25 +96,9 @@ Sem patří samostatné běžící služby, které mají jasnou síťovou nebo p
 
 ```text
 services/
-├── inference-gateway/      # jen pokud bude použit guwp
-├── retrieval-orchestrator/ # volitelné, pokud se retrieval oddělí od API
 ├── scheduler-adapter/      # OpenPBS adapter vrstva
 └── policy-engine/          # volitelně separovaný policy / enforcement runtime
 ```
-
-### `services/inference-gateway/`
-
-Tato složka existuje jen pokud bude skutečně implementován `guwp`.
-
-Musí zůstat tenká a držet se definice z hlavního návrhu:
-
-- sjednocení přístupu na `vLLM` a externí API,
-- OpenAI-like kontrakt,
-- timeouty,
-- fallback policy,
-- tracing a auditovatelná identifikace volání. [M4]
-
-Pokud `guwp` nebude, inference contract a adaptéry zůstanou v `packages/` a `apps/api/`. To je v souladu s hlavním dokumentem, podle něhož architektura na `guwp` nesmí být existenčně závislá. [M4]
 
 ### `services/scheduler-adapter/`
 
@@ -288,38 +268,12 @@ tests/
 - e2e testy musí ověřovat kompletní tok source -> ingest -> evidence -> retrieval -> answer -> citation,
 - load testy musí rozlišovat front-door throughput a inference throughput. [M8]
 
-## 4.8 `data-contracts/`
-
-Doporučená samostatná složka pro:
-
-- JSON Schema / OpenAPI / protobuf / pydantic contracts,
-- event schémata,
-- export/import formáty,
-- verze schémat mezi API, workers a orchestrace.
-
-To je vhodné hlavně proto, aby se systémové kontrakty neukryly v implementaci jednoho frameworku.
-
-## 4.9 `tools/`
-
-Sem patří pomocné utility:
-
-- migrace,
-- seedery,
-- validační skripty,
-- benchmark harness,
-- lokální bootstrap,
-- kontrola checksumů modelů,
-- SBOM generátory a release pomocníci. [M9]
-
----
-
 ## 5. Doporučená ownership mapa
 
 ```text
 apps/api                    -> platform/backend owner
 apps/web                    -> product/ui owner
 services/scheduler-adapter  -> platform/hpc owner
-services/inference-gateway  -> inference/platform owner
 workers/*                   -> data-pipeline owner
 packages/domain-model       -> architecture/platform owner
 packages/inference-contract -> inference/platform owner
@@ -402,9 +356,8 @@ Tato kostra je dost malá na rychlý start a současně už respektuje finální
 - **[M1]** `finalizovany_navrh_metavo_v5.md`, sekce **1. Cíl a závazné zásady**
 - **[M2]** `finalizovany_navrh_metavo_v5.md`, sekce **3.1 Provozní model** a **3.2 Packaging**
 - **[M3]** `finalizovany_navrh_metavo_v5.md`, sekce **3.3 Hranice systému a finální vítězové** a **3.4 Search a retrieval hranice**
-- **[M4]** `finalizovany_navrh_metavo_v5.md`, sekce **3.5 Inference contract a guwp**
+- **[M4]** `finalizovany_navrh_metavo_v5.md`, sekce **3.5 Inference contract**
 - **[M5]** `finalizovany_navrh_metavo_v5.md`, sekce **3.7 Consent, audit a evidence**
 - **[M6]** `finalizovany_navrh_metavo_v5.md`, sekce **3.6 Multimodální ingest: řízený routing, ne slepý fallback**
 - **[M7]** `finalizovany_navrh_metavo_v5.md`, sekce **3.3 Hranice systému a finální vítězové** a reference **[R6][R8][R9]** pro Prefect
 - **[M8]** `finalizovany_navrh_metavo_v5.md`, sekce **3.8 Škálovací model: 1M requestů != 1M synchronních LLM generací**
-- **[M9]** `finalizovany_navrh_metavo_v5.md`, sekce **3.9 Observability, compliance a supply chain**

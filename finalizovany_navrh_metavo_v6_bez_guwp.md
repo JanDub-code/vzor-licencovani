@@ -178,11 +178,11 @@ Patří sem:
 - dotazové scénáře, kde je BM25/hybrid search důležitý,
 - případný reranking pipeline navázaný na search vrstvu. [Z3][R10][R11][R13]
 
-## 3.5 Inference contract a `guwp`
+## 3.5 Inference contract
 
 ### 3.5.1 Uzamčený inference contract
 
-Architektura uzamyká **inference contract**, nikoli konkrétní interní wrapper. Contract musí sjednotit:
+Architektura uzamyká **inference contract** jako jedinou povinnou hranici mezi aplikační vrstvou a inference backendy. Contract musí sjednotit:
 
 - vstupní payload,
 - výstupní payload,
@@ -194,35 +194,17 @@ Architektura uzamyká **inference contract**, nikoli konkrétní interní wrappe
 
 Backendy se mohou lišit podle workloadu, ale kontrakt se nemění.
 
-### 3.5.2 Přesná definice `guwp`
+### 3.5.2 Kde inference contract sedí v request path
 
-`guwp` se nepovažuje za veřejný standard ani za povinnou infrastrukturní komponentu. Pro účely architektury je definován takto:
+Závazná cesta je:
 
-> **`guwp` = interní inference gateway vrstva sjednocující přístup k online inference backendům a externím modelovým API přes jednotný OpenAI-like kontrakt, s fallback politikou, auditovatelným routováním a observability.** [H8]
+`API / orchestrátor -> inference contract -> konkrétní backend`
 
-### 3.5.3 Kde `guwp` sedí v request path
-
-Volitelná cesta je:
-
-`API / orchestrátor -> inference contract -> guwp -> konkrétní backend`
-
-`guwp` nevlastní:
-
-- batch scheduler,
-- storage,
-- retrieval,
-- consent model,
-- evidence model.
-
-Je to pouze tenká integrační vrstva.
-
-### 3.5.4 Co se stane, když `guwp` nebude
-
-Architektura na `guwp` **nesmí být existenčně závislá**. Pokud nebude použit nebo nebude připraven do produkce, systém musí fungovat takto:
+Z toho plyne:
 
 - online inference jde přímo z inference contractu na `vLLM` nebo externí API,
 - batch inference jde přes batch adapter a batch runtime,
-- aplikační vrstva se nepřepisuje, protože kontrakt zůstává stejný. [H8]
+- aplikační vrstva se nepřepisuje, protože kontrakt zůstává stejný.
 
 ## 3.6 Multimodální ingest: řízený routing, ne slepý fallback
 
@@ -338,7 +320,7 @@ To jsou rozhodnutí, která by později způsobila přepis architektury:
 4. **RabbitMQ jako task queue**, [R3][R4][R5]
 5. **Prefect jako workflow vrstva**, [R6][R8][R9]
 6. **OIDC jako auth model**, [Z4]
-7. **inference contract**, [H8]
+7. **inference contract**
 8. **source routing a bounded fallback pravidla**, [Z2][Z3]
 9. **evidence / audit / consent model**, [Z1][Z4][H3]
 10. **L1/L2 cache + service classes + async slow-path**, [H4][H5]
@@ -426,7 +408,7 @@ Monorepo je závazná součást architektury, nikoli jen organizační preferenc
 - API a UI,
 - workflow definice,
 - scheduler adapter,
-- inference contract a případný `guwp`,
+- inference contract,
 - workers,
 - shared domain model,
 - policy knihovny,
@@ -509,7 +491,7 @@ Tento návrh zachovává architektonické jádro původního zadání:
 
 Současně ale odstraňuje dva časté zdroje budoucího přepisování:
 
-1. **neurčité mezivrstvy bez přesné role** — proto je `guwp` definován jako volitelná tenká gateway nad uzamčeným inference contractem, [H8]
+1. **neurčité mezivrstvy bez přesné role** — proto je inference vedena přímo přes uzamčený inference contract na konkrétní backend.
 2. **MVP mezikroky s jinými technologiemi než ve finále** — proto se od začátku používají finální systémové hranice a finální komponenty, s jedinou výjimkou lokálního Docker mirroru, který je pouze zmenšenou kopií stejné architektury.
 
 Tento dokument tedy neříká „co by šlo někdy udělat“. Říká, **co se má uzamknout hned, aby se to nemuselo později překopávat**.
@@ -536,7 +518,6 @@ Tento dokument tedy neříká „co by šlo někdy udělat“. Říká, **co se 
 - **[H5]** _zprava-hluboky-vyzkum.md_, část **Caching**: L1 in-process cache, Redis jako L2 cache a store pro rate limiting / embedding cache.
 - **[H6]** _zprava-hluboky-vyzkum.md_, část **Rizika a mitigace**: preferovat `safetensors`, řešit allowlist/mirror modelů, checksumy, podepisování artefaktů a SBOM.
 - **[H7]** _zprava-hluboky-vyzkum.md_, části **Storage**, **Monitoring a observability** a **Migrační / decision table**: licenční/compliance upozornění pro MinIO community a Loki, alternativa Ceph S3 / jiný log backend.
-- **[H8]** _zprava-hluboky-vyzkum.md_, poznámka **k guwp**: veřejně nejednoznačně identifikovaná komponenta, proto ji brát jako interní wrapper s povinným due diligence.
 
 ### Externí veřejné reference
 
